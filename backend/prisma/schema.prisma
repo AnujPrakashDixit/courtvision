@@ -11,3 +11,91 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id                 Int                 @id @default(autoincrement())
+  username           String              @unique @db.VarChar(20)
+  email              String              @unique @db.VarChar(100)
+  password           String
+  createdAt          DateTime            @default(now())
+  leagues            League[]
+  leagueMembers      LeagueMember[]
+  fantasyTeams       FantasyTeam[]
+  fantasyTeamPlayers FantasyTeamPlayer[]
+}
+
+model League {
+  id                 Int                 @id @default(autoincrement())
+  owner              User                @relation(fields: [ownerId], references: [id])
+  ownerId            Int
+  name               String              @unique @db.VarChar(50)
+  inviteCode         String              @unique @db.VarChar(6)
+  createdAt          DateTime            @default(now())
+  leagueMembers      LeagueMember[]
+  fantasyTeams       FantasyTeam[]
+  fantasyTeamPlayers FantasyTeamPlayer[]
+}
+
+model LeagueMember {
+  member   User   @relation(fields: [memberId], references: [id])
+  memberId Int
+  league   League @relation(fields: [leagueId], references: [id])
+  leagueId Int
+
+  @@id([memberId, leagueId])
+}
+
+enum Position {
+  PG
+  SG
+  SF
+  PF
+  C
+}
+
+model Player {
+  id                 Int                 @id @default(autoincrement())
+  name               String              @db.VarChar(100)
+  position           Position
+  credits            Int
+  apiId              Int                 @unique
+  playerStats        PlayerStats[]
+  fantasyTeamPlayers FantasyTeamPlayer[]
+}
+
+model PlayerStats {
+  player        Player   @relation(fields: [playerId], references: [id])
+  playerId      Int
+  gameDate      DateTime
+  points        Int
+  rebounds      Int
+  assists       Int
+  steals        Int
+  blocks        Int
+  turnovers     Int
+  fantasyPoints Int
+
+  @@id([playerId, gameDate])
+}
+
+model FantasyTeam {
+  user     User   @relation(fields: [userId], references: [id])
+  userId   Int
+  league   League @relation(fields: [leagueId], references: [id])
+  leagueId Int
+  totalPoints Int @default(0) 
+
+  @@id([userId, leagueId])
+}
+
+model FantasyTeamPlayer {
+  user     User     @relation(fields: [userId], references: [id])
+  userId   Int
+  league   League   @relation(fields: [leagueId], references: [id])
+  leagueId Int
+  player   Player   @relation(fields: [playerId], references: [id])
+  playerId Int
+  position Position
+
+  @@id([userId, leagueId, position])
+}
