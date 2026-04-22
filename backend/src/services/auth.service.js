@@ -49,6 +49,47 @@ async function register({ username, email, password }) {
     return { user: newUser, accessToken, refreshToken };
 }
 
+
+async function login({email,password}){
+    if(!email || !password){
+        throw new Error("All fields are required");
+    }
+
+    const userExisting = await prisma.user.findUnique({
+        where:{email}
+    });
+
+    if(!userExisting){
+        throw new Error("Invalid email or password");
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, userExisting.password);
+
+    if(!isPasswordValid){
+        throw new Error("Invalid email or password");
+    }
+
+    const accessToken = generateAccessToken(userExisting.id);
+    const refreshToken = generateRefreshToken(userExisting.id);
+
+    // Store refresh token in Redis with an expiration time
+    await redisClient.set(`refreshToken:${userExisting.id}`, refreshToken, {
+        EX: 7 * 24 * 60 * 60 // 7 days
+    });
+
+    const user = {
+        id: userExisting.id,
+        username: userExisting.username,
+        email: userExisting.email,
+        createdAt: userExisting.createdAt,
+        updatedAt: userExisting.updatedAt
+    }
+
+    return { user, accessToken, refreshToken };
+
+}
+
 module.exports = {
-    register
+    register,
+    login
 };
