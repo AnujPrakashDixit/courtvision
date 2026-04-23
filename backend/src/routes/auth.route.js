@@ -1,6 +1,6 @@
 const express = require('express');
 const authRouter = express.Router();
-const {registerUser, loginUser, logoutUser} = require('../controllers/auth.controller');
+const {registerUser, loginUser, logoutUser, refreshToken} = require('../controllers/auth.controller');
 const {authMiddleware} = require('../middlewares/auth.middleware');
 
 
@@ -22,5 +22,14 @@ authRouter.post('/login', loginUser);
       @access Private
 */
 authRouter.post('/logout', authMiddleware,logoutUser);
+
+/*    @route POST /api/auth/refresh-token
+      @desc Refresh access token
+      @access Public (but requires refresh token)
+*/
+authRouter.post('/refresh-token', refreshToken);
+
+
+
 
 module.exports = authRouter;

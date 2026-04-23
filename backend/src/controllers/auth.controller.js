@@ -1,6 +1,7 @@
 const { register, login } = require('../services/auth.service');
 const config = require('../config/config');
 const { redisClient } = require('../config/redis');
+const { verifyRefreshToken, generateAccessToken } = require('../utils/jwt');
 
 async function registerUser(req, res) {
     const { username, email, password } = req.body;
@@ -67,8 +68,37 @@ async function logoutUser(req, res) {
     }
 }
 
+async function refreshToken(req, res) {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+        return res.status(401).json({ message: 'Refresh token is missing' });
+    }
+
+    try{
+        const decoded = verifyRefreshToken(refreshToken);
+        const userId = decoded.userId;
+
+        // Check if the refresh token exists in Redis
+        const storedToken = await redisClient.get(`refreshToken:${userId}`);
+
+        if(storedToken !== refreshToken){
+            return res.status(401).json({ message: 'Invalid refresh token' });
+        }
+
+        // Generate new access token
+        const newAccessToken = generateAccessToken(userId);
+        res.status(200).json({ accessToken: newAccessToken });
+
+    }
+    catch(err){
+        res.status(401).json({ message: 'Invalid or expired refresh token' });
+    }
+}
+
 module.exports = {
     registerUser,
     loginUser,
-    logoutUser
+    logoutUser,
+    refreshToken
 };
