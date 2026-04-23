@@ -1,5 +1,6 @@
 const { register, login } = require('../services/auth.service');
 const config = require('../config/config');
+const { redisClient } = require('../config/redis');
 
 async function registerUser(req, res) {
     const { username, email, password } = req.body;
@@ -53,7 +54,21 @@ async function loginUser(req, res) {
     }
 }
 
+async function logoutUser(req, res) {
+    const userId = req.user.id; // Assuming user ID is available in req.user
+
+    try {
+        await redisClient.del(`refreshToken:${userId}`);
+        res.clearCookie('refreshToken');
+        res.status(200).json({ message: 'User logged out successfully' });
+    }
+    catch (err) {
+        res.status(500).json({ message: 'Error logging out user' });
+    }
+}
+
 module.exports = {
     registerUser,
-    loginUser
+    loginUser,
+    logoutUser
 };
